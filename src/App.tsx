@@ -43,51 +43,108 @@ const Navbar = () => {
 
   const pathSegments = location.pathname.split('/').filter(Boolean);
 
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b-2 border-foreground bg-white">
-      <div className="container mx-auto px-4 sm:px-6">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link to="/" className="group">
-              <span className="font-heading text-xl font-bold tracking-tight text-foreground transition-colors group-hover:text-accent">
-                PRIME INTEGER RELATIONS
-              </span>
-            </Link>
-            <div className="hidden lg:block">
-              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
-                {['RESEARCH', ...pathSegments].join(' / ')}
-              </span>
+    <>
+      <nav className="sticky top-0 z-50 w-full border-b-2 border-foreground bg-white">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-8">
+              <Link to="/" className="group">
+                <span className="font-heading text-xl font-bold tracking-tight text-foreground transition-colors group-hover:text-accent">
+                  PRIME INTEGER RELATIONS
+                </span>
+              </Link>
+              <div className="hidden lg:block">
+                <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                  {['RESEARCH', ...pathSegments].join(' / ')}
+                </span>
+              </div>
+            </div>
+
+            <div className="hidden md:flex items-center space-x-6">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "text-[11px] font-bold tracking-widest transition-colors hover:text-accent",
+                    location.pathname === item.path
+                      ? "text-accent border-b-2 border-accent pb-1"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {item.name}
+                </Link>
+              ))}
+              <div className="h-4 w-[1px] bg-border" />
+              <span className="text-[10px] font-bold text-muted-foreground">V2.46</span>
+            </div>
+
+            <div className="flex md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen((v) => !v)}
+                className="rounded-none border"
+                aria-expanded={isOpen}
+                aria-label="Toggle menu"
+              >
+                {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
             </div>
           </div>
-
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "text-[11px] font-bold tracking-widest transition-colors hover:text-accent",
-                  location.pathname === item.path 
-                    ? "text-accent border-b-2 border-accent pb-1" 
-                    : "text-muted-foreground"
-                )}
-              >
-                {item.name}
-              </Link>
-            ))}
-            <div className="h-4 w-[1px] bg-border" />
-            <span className="text-[10px] font-bold text-muted-foreground">V2.46</span>
-          </div>
-
-          <div className="flex md:hidden">
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="rounded-none border">
-              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="md:hidden fixed inset-0 z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-black/40" onClick={() => setIsOpen(false)} />
+            <motion.div
+              className="absolute top-16 left-0 right-0 bg-white border-b-2 border-foreground"
+              initial={{ y: -12, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -12, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <div className="px-4 py-4 space-y-2">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "flex items-center justify-between w-full py-3 text-[12px] font-bold tracking-widest border-b",
+                      location.pathname === item.path
+                        ? "text-accent border-accent"
+                        : "text-foreground/80 border-border"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      {item.icon}
+                      {item.name}
+                    </span>
+                    <ChevronRight className="w-4 h-4 opacity-70" />
+                  </Link>
+                ))}
+                <div className="pt-2">
+                  <span className="text-[10px] font-bold text-muted-foreground">V2.46</span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
@@ -117,6 +174,7 @@ const ArchivePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('All');
   const [selectedRange, setSelectedRange] = useState<[number, number] | null>(null);
+  const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
   
   const filteredPapers = publications.filter(paper => {
     const matchesSearch = paper.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -247,7 +305,10 @@ const ArchivePage = () => {
                   key={paper.id} 
                   paper={paper} 
                   isSelected={selectedPaper?.id === paper.id}
-                  onSelect={() => setSelectedPaper(paper)}
+                  onSelect={() => {
+                    setSelectedPaper(paper);
+                    setIsMobilePreviewOpen(true);
+                  }}
                 />
               ))}
               {filteredPapers.length === 0 && (
@@ -309,6 +370,77 @@ const ArchivePage = () => {
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {isMobilePreviewOpen && selectedPaper && (
+          <motion.div
+            className="md:hidden fixed inset-0 z-[60] bg-white"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="sticky top-0 z-10 border-b-2 border-foreground bg-white">
+              <div className="flex items-center justify-between px-4 h-16">
+                <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Selected Document
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsMobilePreviewOpen(false)}
+                  className="rounded-none border"
+                  aria-label="Close preview"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-6">
+              <h1 className="font-heading text-2xl font-bold leading-[1.1] mb-4">
+                {selectedPaper.title}
+              </h1>
+              <div className="text-sm italic text-muted-foreground mb-6 pb-4 border-b">
+                <span>{selectedPaper.authors.join(' & ')}</span>
+              </div>
+
+              <div className="space-y-6 mb-10">
+                <p className="text-[14px] leading-relaxed text-foreground/80 font-sans">
+                  {selectedPaper.description}
+                </p>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {selectedPaper.tags.map(tag => (
+                    <Badge key={tag} variant="outline" className="rounded-none border-border px-2 py-0 text-[10px] uppercase font-mono">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <a
+                  href={selectedPaper.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    buttonVariants({
+                      className:
+                        "rounded-none h-12 text-[12px] font-bold tracking-widest bg-accent hover:bg-accent/90 justify-center",
+                    })
+                  )}
+                >
+                  ACCESS FULL TEXT <ExternalLink className="w-3 h-3" />
+                </a>
+                {selectedPaper.arXiv && (
+                  <div className="text-[11px] font-mono text-muted-foreground">
+                    arXiv:{selectedPaper.arXiv}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
